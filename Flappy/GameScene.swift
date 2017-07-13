@@ -19,9 +19,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var topObstacle1 = SKSpriteNode()
     var topObstacle2 = SKSpriteNode()
     var start = Bool(false)
-    var birdIsActive = Bool(false)
+    var ufoIsActive = Bool(false)
     var obstacleHeight = CGFloat(200)
-    let birdCategory:UInt32 = 0x1 << 0
+    let ufoCategory:UInt32 = 0x1 << 0
     let pipeCategory:UInt32 = 0x1 << 1
 
 
@@ -36,6 +36,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         myBackground.anchorPoint = CGPoint.zero;
         
         myBackground.position = CGPoint(x: 0, y: 150)
+        myBackground.zPosition = -1
         self.backgroundColor = UIColor.black
 
         addChild(myBackground)
@@ -43,9 +44,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         myFloor1 = SKSpriteNode(imageNamed: "floor")
         myFloor2 = SKSpriteNode(imageNamed: "floor")
         myFloor1.anchorPoint = CGPoint.zero;
-        myFloor1.position = CGPoint(x: 0,y: 0);
+        myFloor1.position = CGPoint(x: 0,y: 0)
         myFloor2.anchorPoint = CGPoint.zero;
-        myFloor2.position = CGPoint(x: myFloor1.size.width-1,y: 0);
+        myFloor2.position = CGPoint(x: myFloor1.size.width-1,y: 0)
+        myFloor1.physicsBody = SKPhysicsBody(edgeLoopFrom: myFloor1.frame)
+        myFloor2.physicsBody = SKPhysicsBody(edgeLoopFrom: myFloor2.frame)
         addChild(myFloor1)
         addChild(myFloor2)
         
@@ -60,57 +63,71 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         topObstacle1 = SKSpriteNode(imageNamed: "Obstacle")
         topObstacle2 = SKSpriteNode(imageNamed: "Obstacle")
         
+        
         bottomObstacle1.position = CGPoint(x: 800,y: 200);
         bottomObstacle1.size.height = bottomObstacle1.size.height / 2
         bottomObstacle1.size.width = bottomObstacle1.size.width / 2
+        bottomObstacle1.zPosition = -1
+        bottomObstacle1.physicsBody?.categoryBitMask = pipeCategory
+        bottomObstacle1.physicsBody?.contactTestBitMask = ufoCategory
+        bottomObstacle1.physicsBody = SKPhysicsBody(texture: SKTexture(imageNamed: "Obstacle"), size: self.bottomObstacle1.size)
         
         bottomObstacle2.position = CGPoint(x: 1600,y: 200);
         bottomObstacle2.size.height = bottomObstacle2.size.height / 2
         bottomObstacle2.size.width = bottomObstacle2.size.width / 2
+        bottomObstacle2.zPosition = -1
+        bottomObstacle2.physicsBody?.categoryBitMask = pipeCategory
+        bottomObstacle2.physicsBody?.contactTestBitMask = ufoCategory
+        bottomObstacle2.physicsBody = SKPhysicsBody(texture: SKTexture(imageNamed: "Obstacle"), size: self.bottomObstacle2.size)
         
         topObstacle1.position = CGPoint(x: 800,y: 200 * 5);
         topObstacle1.size.height = topObstacle1.size.height / 2
         topObstacle1.size.width = topObstacle1.size.width / 2
+        topObstacle1.physicsBody?.categoryBitMask = pipeCategory
+        topObstacle1.physicsBody?.contactTestBitMask = ufoCategory
+        topObstacle1.physicsBody = SKPhysicsBody(texture: SKTexture(imageNamed: "Obstacle"), size: self.topObstacle1.size)
         
         topObstacle2.position = CGPoint(x: 1600,y: 200 * 5);
         topObstacle2.size.height = topObstacle2.size.height / 2
         topObstacle2.size.width = topObstacle2.size.width / 2
-
+        topObstacle2.physicsBody?.categoryBitMask = pipeCategory
+        topObstacle2.physicsBody?.contactTestBitMask = ufoCategory
+        topObstacle2.physicsBody = SKPhysicsBody(texture: SKTexture(imageNamed: "Obstacle"), size: self.topObstacle2.size)
+        
+        bottomObstacle1.physicsBody?.isDynamic = false
+        bottomObstacle2.physicsBody?.isDynamic = false
+        topObstacle1.physicsBody?.isDynamic = false
+        topObstacle2.physicsBody?.isDynamic = false
+        
         addChild(self.bottomObstacle1)
         addChild(self.bottomObstacle2)
         addChild(self.topObstacle1)
         addChild(self.topObstacle2)
-        
-
     }
     
     
     func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
+
     }
     
     func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
+
     }
     
     func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
-        }
+
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         start = true
+        if (ufoIsActive)
+        {
+        self.ufo.physicsBody!.applyImpulse(CGVector(dx: 0,dy: 150))
+        }
+        else
+        {
+            createUfoPhysics()
+        }
     }
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -128,6 +145,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     override func update(_ currentTime: TimeInterval) {
         // Called before each frame is rendered
+        ufo.position.x = self.frame.width / 2
         myFloor1.position = CGPoint(x: myFloor1.position.x-4,y: myFloor1.position.y);
         myFloor2.position = CGPoint(x: myFloor2.position.x-4,y: myFloor2.position.y);
         
@@ -158,12 +176,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             {
                 obstacleHeight = randomBetweenNumbers(firstNum: 0, secondNum: 240)
             }
-            
         }
     }
     func randomBetweenNumbers(firstNum: CGFloat, secondNum: CGFloat) -> CGFloat{
         
         return CGFloat(arc4random()) / CGFloat(UINT32_MAX) * abs(firstNum - secondNum) + min(firstNum, secondNum)
         
+    }
+    func createUfoPhysics()
+    {
+    
+    ufo.physicsBody = SKPhysicsBody(circleOfRadius: CGFloat(self.ufo.size.width / 2))
+    
+    ufo.physicsBody?.linearDamping = 2
+    ufo.physicsBody?.restitution = 0
+    
+    ufo.physicsBody?.categoryBitMask = ufoCategory
+    ufo.physicsBody?.contactTestBitMask = pipeCategory
+    
+    ufoIsActive = true
+    
+    }
+    @objc func didBegin(_: SKPhysicsContact) {
+        //GAMEOVER = TRUE
+        let gameOverLabel = SKLabelNode(fontNamed: "Arial")
+        
+        gameOverLabel.text = "Game Over"
+        
+        gameOverLabel.fontColor = UIColor.white
+        
+        gameOverLabel.fontSize = 40
+        
+        gameOverLabel.position = CGPoint(x: 187.5 ,y: 333.5)
+        
+        addChild(gameOverLabel)
     }
 }
